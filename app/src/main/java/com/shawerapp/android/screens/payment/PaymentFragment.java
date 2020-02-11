@@ -1,8 +1,12 @@
 package com.shawerapp.android.screens.payment;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -12,10 +16,13 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -24,12 +31,25 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
 import com.crashlytics.android.Crashlytics;
 import com.google.common.hash.Hashing;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.jakewharton.rxbinding2.widget.RxTextView;
+import com.oppwa.mobile.connect.checkout.dialog.CheckoutActivity;
+import com.oppwa.mobile.connect.checkout.meta.CheckoutSettings;
+import com.oppwa.mobile.connect.checkout.meta.CheckoutSkipCVVMode;
+import com.oppwa.mobile.connect.exception.PaymentError;
+import com.oppwa.mobile.connect.provider.Connect;
+import com.oppwa.mobile.connect.provider.Transaction;
+import com.oppwa.mobile.connect.provider.TransactionType;
 import com.shawerapp.android.R;
+import com.shawerapp.android.application.ApplicationModel;
 import com.shawerapp.android.application.MyPreferenceManager;
 import com.shawerapp.android.autovalue.Answer;
 import com.shawerapp.android.autovalue.CommercialUser;
@@ -55,6 +75,8 @@ import com.treebo.internetavailabilitychecker.InternetConnectivityListener;
 import com.trello.rxlifecycle2.android.FragmentEvent;
 
 import org.apache.http.util.EncodingUtils;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.Serializable;
@@ -66,7 +88,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.inject.Inject;
@@ -80,9 +104,22 @@ import timber.log.Timber;
 import static com.shawerapp.android.screens.composer.ComposerKey.QUESTION;
 
 
-public class PaymentFragment extends BaseFragment implements PaymentContract.View {
+public class PaymentFragment extends BaseFragment implements PaymentContract.View,CheckoutIdRequestListener,PaymentStatusRequestListener {
 
     Boolean startPayment = false;
+    private ProgressDialog progressDialog = null;
+
+    String amount="50";
+    String checkoutId;
+    protected String resourcePath = null;
+    String payment_method;
+
+    private static final String STATE_RESOURCE_PATH = "STATE_RESOURCE_PATH";
+    private PaymentStatusRequestListener listener = null;
+
+
+
+
 
 
     public static final String ARG_INVOICE = "invoice";
@@ -100,6 +137,9 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
     public static final String ARG_AUDIO_FILE_UPLOAD = "audioFileUpload";
 
     public static final String ARG_ATTACHMENT_FILE_UPLOAD = "attachmentFileUpload";
+    String finalType1;
+    String lang="ar";
+
 
 //    public static final String ARG_QUESTION_TO_RESPOND_TO = "audioFileUpload";
 
@@ -130,11 +170,12 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         args.putString(ARG_AUDIO_FILE_UPLOAD, audioFileUpload);
         args.putSerializable(ARG_ATTACHMENT_FILE_UPLOAD, (Serializable) attachmentFileUpload);
         args.putSerializable("mRecordedAudioFile", mRecordedAudioFile);
-//        args.putString("mSelectedFilesPaths", mSelectedFilesPaths);
+     // args.putString("mSelectedFilesPaths", mSelectedFilesPaths);
         args.putCharSequence("mComposition", mComposition);
 
-        args.putSerializable("mComposerViewModel", mComposerViewModel);
+        //args.putSerializable("mComposerViewModel", mComposerViewModel);
 
+        
 //        args.putParcelable(ARG_QUESTION_TO_RESPOND_TO, question);
 
         PaymentFragment fragment = new PaymentFragment();
@@ -316,9 +357,12 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
 //
 //        }));
 
-        submitBtn.setOnClickListener(v -> {
 
-            if (creditCardLayout.getVisibility() == View.VISIBLE) {
+
+        submitBtn.setOnClickListener(v -> {
+            //requestCheckoutId(getString(R.string.checkout_ui_callback_scheme));
+
+           /* if (creditCardLayout.getVisibility() == View.VISIBLE) {
                 if (CommonUtils.isNotEmpty(mCCreditCardNumber.getText())) {
 //                return mCCreditCardNumber.getText().toString();
                 } else {
@@ -388,7 +432,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
                     maCCreditCardHolderName.setBackgroundResource(R.drawable.input_field_bg_error);
                     return;
                 }
-            }
+            }*/
 
             callPayment();
         });
@@ -503,6 +547,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
             holderName = maCCreditCardHolderName.getText().toString();
         }
 
+
         long questionServiceFee;
         if (mViewModel.mRequestType == QUESTION) {
             if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
@@ -524,7 +569,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         }
 
 
-        String amount = "" + (questionServiceFee * 100);
+         amount = "" + (questionServiceFee * 100);
 
         String post = "MTg2NWEzYjViNGI1NzNmZDMzODNmODY0";
         post += amount;
@@ -919,6 +964,8 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         } else {
             type = "Coordinate fees with lawyer office";
         }
+
+
 //        addInvoice(type);
 
     }
@@ -983,6 +1030,10 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
 
     }
 
+
+
+
+
     @Override
     public void showSuccessDialog(String successMessage, Action onConfirm) {
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext(), R.style.DialogTheme);
@@ -1030,6 +1081,13 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         View view = inflater.inflate(R.layout.sts_payment_activity, container, false);
 
         mUnbinder = ButterKnife.bind(this, view);
+        transActionID = "" + System.currentTimeMillis();
+
+        if (savedInstanceState != null) {
+            resourcePath = savedInstanceState.getString(STATE_RESOURCE_PATH);
+        }
+        requestCheckoutId(getString(R.string.checkout_ui_callback_scheme));
+
 
         return view;
     }
@@ -1041,11 +1099,265 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
 
     }
 
-    @Override
+
+
+    protected void showProgressDialog() {
+
+        if (progressDialog != null && progressDialog.isShowing()) {
+            return;
+        }
+
+        if (progressDialog == null) {
+            progressDialog = new ProgressDialog(getActivity());
+            progressDialog.setCancelable(false);
+        }
+
+        progressDialog.setMessage(getString(R.string.progress_message_payment_status));
+        progressDialog.show();
+    }
+
+
+    public void requestPaymentStatus(String resourcePath,
+                                     final String lang, PaymentStatusRequestListener listener) {
+        showProgressDialog();
+        this.listener = listener;
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, AppConstants.requestPaymentStatus + checkoutId, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+
+
+
+
+                try {
+                    Log.e("RequestPaymentStatus", "RequestPaymentStatus " + response);
+
+                    hideProgressDialog();
+                    JSONObject r = new JSONObject(response);
+                    Log.e("RequestPaymentStatus", "RequestPaymentStatus " + r);
+
+                    JSONObject result = r.getJSONObject("result");
+                    String description = result.getString("description");
+                    Toast.makeText(getActivity(), "" + description, Toast.LENGTH_SHORT).show();
+                    String code = result.getString("code");
+                    if (code.matches("000.000.000") || code.matches("000.000.100") ||
+
+                            code.matches("000.100.110") || code.matches("000.100.111") ||
+
+                            code.matches("000.100.112") || code.matches("000.400.000") ||
+
+                            code.matches("000.400.020") || code.matches("000.400.010") || code.matches("000.400.100") || code.matches("000.400.020")) {
+                        createQuestionPractise();
+
+                        //showDialog(PaymentActivity.this, getString(R.string.SuccessPayed),true);
+                        // Toast.makeText(PaymentActivity.this, "" + getString(R.string.SuccessPayed), Toast.LENGTH_SHORT).show();
+
+
+
+                        /*
+                        (String uid,String orderVatPrice, String orderVat,
+                      String orderTypePrice, String orderType, String orderSubTotal,
+                      String orderRequestNumber,Date orderDate, String collection, String userUid,
+                      String lawyerUid, String paid)
+                         */
+
+                        addTransactionToShared();
+
+
+                    } else {
+
+                        addNotPaidInvoice(finalType1);
+
+
+                        Toast.makeText(getActivity(), "" + getString(R.string.failedpay), Toast.LENGTH_SHORT).show();
+//addInvoice();
+                        //showFailedDialog(PaymentActivity.this, getString(R.string.failedpay));
+
+
+
+
+                       /* if (counter == 3) {
+
+                            Toast.makeText(PaymentActivity.this, "" + getString(R.string.failedpay), Toast.LENGTH_SHORT).show();
+                            Intent intent=new Intent(PaymentActivity.this,ContainerActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK
+                       |Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+                              sharedPreferences.edit().remove("counter").commit();
+
+
+                        } else {
+                             Toast.makeText(PaymentActivity.this, "" + description, Toast.LENGTH_SHORT).show();
+                            Toast.makeText(PaymentActivity.this, "" + getString(R.string.failedpayagain), Toast.LENGTH_SHORT).show();
+                            Intent intent=new Intent(PaymentActivity.this,ContainerActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK
+                                    |Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                            startActivity(intent);
+                            finish();
+
+                        }*/
+
+
+                    }
+                    Log.e("description", "description " + description);
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    Log.d("KHH", "JSONException " + e);
+
+                    hideProgressDialog();
+
+                }
+
+
+            }
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                hideProgressDialog();
+                Log.d("KHH", "VolleyError " + error);
+
+
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> map = new HashMap();
+                map.put("id", checkoutId + "");
+                map.put("type", "paymentStatus");
+
+
+                return map;
+
+            }
+
+            @Override
+            public Map<String, String> getHeaders() {
+                HashMap<String, String> headers = new HashMap<>();
+                //headers.put("lang", lang);
+
+
+                return headers;
+            }
+
+        };
+
+        ApplicationModel.getInstance().addToRequestQueue(stringRequest);
+
+
+    }
+
+   /* @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         viewModel.onActivityResult(requestCode, resultCode, data);
+    }*/
+
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        viewModel.onActivityResult(requestCode, resultCode, data);
+
+        // Toast.makeText(this, "result", Toast.LENGTH_SHORT).show();
+
+
+      /*  long questionServiceFee;
+        if (mViewModel.mRequestType == QUESTION) {
+            if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
+                questionServiceFee = mViewModel.mSelectedLawyer.individualFees().get(mViewModel.mSelectedSubSubject.uid());
+            } else if (mLoginUtil.getUserRole().equals(CommercialUser.ROLE_VALUE)) {
+                questionServiceFee = mViewModel.mSelectedLawyer.commercialFees().get(mViewModel.mSelectedSubSubject.uid());
+            } else {
+                questionServiceFee = 0L;
+            }
+        } else {
+            questionServiceFee = 20L;
+        }
+
+        String type = "";
+        if (mViewModel.mRequestType == QUESTION) {
+            type = "Esteshara Fee";
+        } else {
+            type = "Coordinate fees with lawyer office";
+        }
+
+        String amount = "" + (questionServiceFee * 100);
+        addTransactionToShared();
+        createQuestionPractise();*/
+        /* Override onActivityResult to get notified when the checkout process is done. */
+
+
+        if (requestCode == CheckoutActivity.REQUEST_CODE_CHECKOUT)
+            if (resultCode == CheckoutActivity.RESULT_OK) {
+                long questionServiceFee;
+                if (mViewModel.mRequestType == QUESTION) {
+                    if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
+                        questionServiceFee = mViewModel.mSelectedLawyer.individualFees().get(mViewModel.mSelectedSubSubject.uid());
+                    } else if (mLoginUtil.getUserRole().equals(CommercialUser.ROLE_VALUE)) {
+                        questionServiceFee = mViewModel.mSelectedLawyer.commercialFees().get(mViewModel.mSelectedSubSubject.uid());
+                    } else {
+                        questionServiceFee = 0L;
+                    }
+                } else {
+                    questionServiceFee = 20L;
+                }
+
+                String type = "";
+                if (mViewModel.mRequestType == QUESTION) {
+                    type = "Esteshara Fee";
+                } else {
+                    type = "Coordinate fees with lawyer office";
+                }
+
+                 finalType1 = type;
+
+
+
+                amount = "" + (questionServiceFee * 100);
+
+                Log.e("resourcePath", "resourcePath");
+                /* Transaction completed. */
+                Transaction transaction = data.getParcelableExtra(CheckoutActivity.CHECKOUT_RESULT_TRANSACTION);
+                resourcePath = data.getStringExtra(CheckoutActivity.CHECKOUT_RESULT_RESOURCE_PATH);
+                payment_method = transaction.getPaymentParams().getPaymentBrand();
+                Log.e("payment_method", "payment_method" + payment_method);
+                assert resourcePath != null;
+                Log.e("resourcePath", resourcePath);
+                Log.e("transaction", transaction.getTransactionType().toString());
+                /* Check the transaction type. */
+                assert (transaction != null);
+                if (transaction.getTransactionType() == TransactionType.ASYNC) {
+                    /* Check the status of synchronous transaction. */
+
+
+                    requestPaymentStatus(resourcePath, lang, this);
+                    hideProgressDialog();
+
+
+                }
+
+                /* else {
+                    /* Asynchronous transaction is processed in the onNewIntent(). */
+                //onNewIntent(data);
+                //requestPaymentStatus(resourcePath,lang,token, this);
+
+                    /*hideProgressDialog();
+                }*/
+            } else if (resultCode == CheckoutActivity.RESULT_CANCELED) {
+                hideProgressDialog();
+                getActivity().finish();
+//                openMain();
+            } else if (resultCode == CheckoutActivity.RESULT_ERROR) {
+                hideProgressDialog();
+                PaymentError error = data.getParcelableExtra(CheckoutActivity.CHECKOUT_RESULT_ERROR);
+                assert error != null;
+                Log.e("resourcePath", error.getErrorMessage());
+                showAlertDialog(R.string.error_message);
+            }
     }
+
 
     @Override
     public boolean onItemClick(View view, int position) {
@@ -1070,6 +1382,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
     void getHash(String str) {
         hash = Hashing.sha256().hashString(str, StandardCharsets.UTF_8).toString();
     }
+
 
     @SuppressLint("CheckResult")
     public void addNewQuestion(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription) {
@@ -1216,6 +1529,102 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         super.onPause();
 //        Objects.requireNonNull(getActivity()).unregisterReceiver(networkChangeReceiver);
     }
+
+    @Override
+    public void onCheckoutIdReceived(String checkoutId, String url) {
+        this.checkoutId = checkoutId;
+        Log.e("checkoutId", checkoutId);
+        Log.e("callBack", url);
+        hideProgressDialog();
+        openCheckoutUI(checkoutId);
+
+    }
+
+    private void openCheckoutUI(String checkoutId) {
+        CheckoutSettings checkoutSettings = createCheckoutSettings(checkoutId,
+                getString(R.string.checkout_ui_callback_scheme));
+
+        /* Set componentName if you want to receive callbacks from the checkout */
+        ComponentName componentName = new ComponentName(
+                getActivity().getPackageName(), CheckoutBroadcastReceiver.class.getName());
+
+        /* Set up the Intent and start the checkout activity. */
+        Intent intent = checkoutSettings.createCheckoutActivityIntent(getActivity(), componentName);
+
+        startActivityForResult(intent, CheckoutActivity.REQUEST_CODE_CHECKOUT);
+    }
+
+
+    protected CheckoutSettings createCheckoutSettings(String checkoutId, String callbackScheme) {
+
+
+        return new CheckoutSettings(checkoutId, Constants.Config.PAYMENT_BRANDS,
+                Connect.ProviderMode.TEST).setSkipCVVMode(CheckoutSkipCVVMode.FOR_STORED_CARDS)
+//                .setShopperResultUrl(callbackScheme);
+                .setShopperResultUrl("checkoutui://result");
+        //                .setGooglePayPaymentDataRequest(getGooglePayRequest())
+    }
+
+    protected void hideProgressDialog() {
+        if (progressDialog == null) {
+            return;
+        }
+
+        progressDialog.dismiss();
+    }
+
+    protected void showAlertDialog(String message) {
+        new AlertDialog.Builder(getContext()).
+                setMessage(message).setPositiveButton(R.string.button_ok, (dialog, which) -> {
+//            openMain();
+        })
+                .setCancelable(false).show();
+    }
+
+    protected void showAlertDialog(int messageId) {
+        showAlertDialog(getString(messageId));
+    }
+
+    @Override
+    public void onErrorOccurred() {
+        hideProgressDialog();
+        showAlertDialog(R.string.error_message);
+
+    }
+
+    @Override
+    public void onPaymentStatusReceived(String paymentStatus) {
+        hideProgressDialog();
+
+        if ("true".equals(paymentStatus)) {
+            showAlertDialog(R.string.message_successful_payment);
+            return;
+        }
+
+
+        showAlertDialog(R.string.message_unsuccessful_payment);
+    }
+
+
+
+    public void requestCheckoutId(String callbackScheme) {
+
+        //CheckoutIdRequestAsyncTask
+
+
+        Log.e("checkout", "chechout");
+        new CheckoutIdRequestAsyncTask(amount, "ar", transActionID, this);
+
+    }
+
+    protected boolean hasCallbackScheme(Intent intent) {
+        String scheme = intent.getScheme();
+
+        return getString(R.string.checkout_ui_callback_scheme).equals(scheme) ||
+                getString(R.string.payment_button_callback_scheme).equals(scheme) ||
+                getString(R.string.custom_ui_callback_scheme).equals(scheme);
+    }
+
 
 //    private BroadcastReceiver networkChangeReceiver = new BroadcastReceiver() {
 //        @Override

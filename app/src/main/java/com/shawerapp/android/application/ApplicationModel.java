@@ -2,6 +2,9 @@ package com.shawerapp.android.application;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+
+//import androidx.multidex.BuildConfig;
+import androidx.multidex.BuildConfig;
 import androidx.multidex.MultiDexApplication;
 
 import android.os.Handler;
@@ -12,9 +15,12 @@ import android.webkit.WebViewClient;
 import android.widget.TextView;
 
 import com.akaita.java.rxjava2debug.RxJava2Debug;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
 import com.crashlytics.android.Crashlytics;
 import com.google.common.hash.Hashing;
-import com.shawerapp.android.BuildConfig;
+//import com.shawerapp.android.BuildConfig;
 import com.shawerapp.android.R;
 import com.shawerapp.android.autovalue.CommercialUser;
 import com.shawerapp.android.autovalue.IndividualUser;
@@ -64,6 +70,8 @@ public class ApplicationModel extends MultiDexApplication {
 
     WebView webView;
     TextView contentView;
+    private RequestQueue requestQueue;
+    private static ApplicationModel anInstance;
 
     @Inject
     RealTimeDataFramework mRTDataFramework;
@@ -71,6 +79,8 @@ public class ApplicationModel extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
+        anInstance = this;
+
         Fabric.with(this, new Crashlytics());
         if (BuildConfig.DEBUG) {
             Timber.plant(new HubChartDebugTree());
@@ -230,7 +240,6 @@ public class ApplicationModel extends MultiDexApplication {
 
         Invoice invoice_ = Invoice.builder()
                 .collection("invoices")
-
                 .orderDate(new Date())
                 .orderRequestNumber(orderRequestNumber)
                 .orderVat("0.0%")
@@ -343,4 +352,29 @@ public class ApplicationModel extends MultiDexApplication {
             }
         }
     }
+
+
+
+    public void addToRequestQueue(Request request){
+        if(getRequestQueue() !=null) {
+            getRequestQueue().add(request);
+        }
+        else {
+            requestQueue = Volley.newRequestQueue(this);
+            getRequestQueue().add(request);
+        }
+    }
+
+    private RequestQueue getRequestQueue(){
+        return  requestQueue;
+    }
+
+    public void cancelRequest(String tag){
+        getRequestQueue().cancelAll(tag);
+    }
+
+    public static synchronized ApplicationModel getInstance(){
+        return anInstance;
+    }
+
 }
