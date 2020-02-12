@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.collection.ArraySet;
 
 import com.esafirm.imagepicker.model.Image;
@@ -14,6 +15,7 @@ import com.shawerapp.android.autovalue.Answer;
 import com.shawerapp.android.autovalue.CommercialUser;
 import com.shawerapp.android.autovalue.Field;
 import com.shawerapp.android.autovalue.IndividualUser;
+import com.shawerapp.android.autovalue.Invoice;
 import com.shawerapp.android.autovalue.LawyerUser;
 import com.shawerapp.android.autovalue.Question;
 import com.shawerapp.android.autovalue.SubSubject;
@@ -29,8 +31,10 @@ import com.shawerapp.android.screens.answerlist.AnswerListKey;
 import com.shawerapp.android.screens.composer.ComposerContract;
 import com.shawerapp.android.screens.composer.ComposerViewModel;
 import com.shawerapp.android.screens.container.ContainerContract;
+import com.shawerapp.android.screens.invoice.InvoiceKey;
 import com.shawerapp.android.screens.profile.lawyer.personal.PrivateLawyerViewKey;
 import com.shawerapp.android.screens.profile.user.view.ProfileViewKey;
+import com.shawerapp.android.screens.purchase.PurchaseCoinsKey;
 import com.shawerapp.android.screens.requestlist.RequestListKey;
 import com.shawerapp.android.utils.CommonUtils;
 import com.shawerapp.android.utils.LoginUtil;
@@ -44,6 +48,7 @@ import com.zhuinden.simplestack.StateChange;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -83,12 +88,26 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
 
     private BaseActivity mActivity;
+    static Boolean paid = false;
+    private String mSelectedStatus;
+
+
+    String transAction = "";
+
+    PaymentContract.View mmView;
+
+    PaymentFragment paymentFragment;
+    PaymentContract.ViewModel paymentViewModel;
+
+    private static final int RC_CAMERA = 3000;
 
 
     ComposerViewModel mComposerViewModel;
 
     @Inject
     ContainerContract.ViewModel mContainerViewModel;
+
+    private Question mQuestionToRespondTo;
 
     @Inject
     ContainerContract.View mContainerView;
@@ -541,9 +560,9 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
         return null;
     }
 
-    @SuppressLint("CheckResult")
     @Override
-    public void onSubmitComposition(int mRequestType, File mRecordedAudioFile, ArraySet<String> mSelectedFilesPaths, CharSequence mComposition ){
+    public void onSubmitComposition(int mRequestType, File mRecordedAudioFile, ArraySet<String>
+            mSelectedFilesPaths, CharSequence mComposition ){
         Maybe<String> audioFileUpload = Maybe.just("");
         if (mRecordedAudioFile != null) {
             audioFileUpload = mFileFramework.uploadAnswerAttachment(Uri.fromFile(mRecordedAudioFile))
@@ -600,6 +619,159 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
         }
     }
 
+
+
+    public void onSubmitComposition() {
+        Maybe<String> audioFileUpload = Maybe.just("");
+        if (mRecordedAudioFile != null) {
+            audioFileUpload = mFileFramework.uploadAnswerAttachment(Uri.fromFile(mRecordedAudioFile))
+                    .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW));
+        }
+
+        Maybe<List<String>> attachmentFileUpload = Maybe.just(new ArrayList<>());
+        if (mSelectedFilesPaths != null) {
+            attachmentFileUpload = Flowable.fromIterable(mSelectedFilesPaths)
+                    .flatMapMaybe(filePath -> mFileFramework.uploadAnswerAttachment(Uri.fromFile(new File(filePath))))
+                    .toList()
+                    .toMaybe()
+                    .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW));
+        }
+
+        Maybe<String> composition = Maybe.just("");
+        if (CommonUtils.isNotEmpty(mComposition)) {
+            composition = Maybe.just(mComposition.toString());
+        }
+
+        mContainerViewModel.hideRightToolbarButton();
+
+        final List<String>[] attachmentsFiles = new List[]{new ArrayList<>()};
+
+        attachmentFileUpload.map(authResult -> attachmentsFiles[0].addAll(authResult));
+
+
+
+
+        if (mRequestType == QUESTION) {
+            if (paid) {
+                addNewQuestionnew(audioFileUpload, attachmentFileUpload, composition,
+                        mmView, paymentFragment);
+                this.setPaidStatus(false);
+            } else {
+                mContainerViewModel
+                        .goTo(PaymentKey.builder()
+                                .requestType(mRequestType)
+                                .selectedField(mSelectedField)
+                                .selectedSubSubject(mSelectedSubSubject)
+                                .selectedLawyerUser(mSelectedLawyer)
+                                .questionDescription(String.valueOf(composition))
+                                .attachmentFileUpload(attachmentsFiles[0])
+                                .audioFileUpload(String.valueOf(audioFileUpload))
+                                .mRecordedAudioFile(mRecordedAudioFile)
+                                //.mComposition(mComposition)
+                                //.mComposerViewModel(this)
+                                .build())
+                        .subscribe(mContainerViewModel.navigationObserver());
+            }
+        } else if (mRequestType == PRACTICE) {
+            if (paid) {
+                addNewPracticeRequest(audioFileUpload, attachmentFileUpload,
+                        composition, mmView, paymentFragment);
+                this.setPaidStatus(false);
+            } else {
+                mContainerViewModel
+                        .goTo(PaymentKey.builder()
+                                .requestType(mRequestType)
+                                .selectedField(mSelectedField)
+                                .selectedSubSubject(mSelectedSubSubject)
+                                .selectedLawyerUser(mSelectedLawyer)
+                                .questionDescription(String.valueOf(composition))
+                                .attachmentFileUpload(attachmentsFiles[0])
+                                .audioFileUpload(String.valueOf(audioFileUpload))
+                                .mRecordedAudioFile(mRecordedAudioFile)
+                                .mComposition(mComposition)
+                               // .mComposerViewModel(this)
+                                .build())
+                        .subscribe(mContainerViewModel.navigationObserver());
+            }
+//            addNewPracticeRequest(audioFileUpload, attachmentFileUpload, composition);
+        } else if (mRequestType == DETAILS) {
+            mSelectedStatus = Question.Status.HAS_MORE_DETAILS;
+            addAnswer(audioFileUpload, attachmentFileUpload, composition);
+        } else if (mRequestType == FEEDBACK) {
+            mSelectedStatus = Question.Status.HAS_FEEDBACK;
+            addAnswer(audioFileUpload, attachmentFileUpload, composition);
+        }
+    }
+
+
+    public void addAnswer(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription) {
+        Maybe.zip(audioFileUpload, attachmentFileUpload, questionDescription,
+                (recordedAudioUrl, attachmentUrls, description) -> Answer.builder()
+                        .audioRecordingUrl(recordedAudioUrl)
+                        .fileAttachments(attachmentUrls)
+                        .questionDescription(description)
+                        .answerFor(mQuestionToRespondTo.status())
+                        .build())
+                .doOnSubscribe(disposable -> mContainerView.showLoadingIndicator())
+                .flatMapCompletable(answer -> mRTDataFramework
+                        .updateQuestionStatus(mQuestionToRespondTo, mSelectedStatus)
+                        .andThen(mRTDataFramework
+                                .addAnswer(mQuestionToRespondTo, answer)
+                                .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY))))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe(
+                        () -> mView.showSuccessDialog(
+                                mFragment.getString(R.string.success_respond),
+                                () -> mContainerViewModel
+                                        .newTop(AnswerListKey.create())
+                                        .subscribe(mContainerViewModel.navigationObserver())),
+                        mContainerViewModel.catchErrorThrowable());
+    }
+
+    public void addNewPracticeRequestnew(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription) {
+        mRTDataFramework
+                .retrieveUserCoins()
+                .doOnSubscribe(disposable -> mContainerView.showLoadingIndicator())
+                .flatMap(currentCoins -> {
+//                    if (currentCoins < mPracticeRequestCost) {
+//                        return Maybe.error(new Throwable(mFragment.getString(R.string.error_not_enough_coins)));
+//                    } else {
+//                        return Maybe.just(currentCoins);
+//                    }
+                    return Maybe.just(currentCoins);
+                })
+                .flatMap(currentCoins -> Maybe.zip(audioFileUpload, attachmentFileUpload, questionDescription,
+                        (recordedAudioUrl, attachmentUrls, description) -> Answer.builder()
+                                .audioRecordingUrl(recordedAudioUrl)
+                                .fileAttachments(attachmentUrls)
+                                .questionDescription(description)
+                                .build()))
+                .flatMapCompletable(answer -> mRTDataFramework
+                        .addPracticeRequest(
+                                mSelectedField,
+                                mSelectedSubSubject,
+                                answer.audioRecordingUrl(),
+                                answer.fileAttachments(),
+                                answer.questionDescription(),
+                                mPracticeRequestCost)
+                        .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY)))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe(
+                        () -> mView.showSuccessDialog(
+                                mFragment.getString(R.string.Paymentprocessedsuccessfully),
+                                () -> mContainerViewModel
+                                        .newTop(RequestListKey.create())
+                                        .subscribe(mContainerViewModel.navigationObserver())),
+                        throwable -> {
+                            if (throwable.getMessage().equalsIgnoreCase(mFragment.getString(R.string.error_not_enough_coins))) {
+                                showNotEnoughCoinsPopup();
+                            } else {
+                                mContainerViewModel.catchErrorThrowable().accept(throwable);
+                            }
+                        });
+    }
+
+
 //    @Override
 //    public Completable goBack() {
 //        return new CompletableDefer(() ->
@@ -616,7 +788,8 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 //    }
 
     @SuppressLint("CheckResult")
-    public void addNewQuestion(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription) {
+    public void addNewQuestion(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload,
+                               Maybe<String> questionDescription) {
         long questionServiceFee;
         if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
             questionServiceFee = mSelectedLawyer.individualFees().get(mSelectedSubSubject.uid());
@@ -665,6 +838,177 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
                         });
     }
 
+
+    public void addNewQuestionnew(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload,
+                               Maybe<String> questionDescription, PaymentContract.View mmView,
+                               PaymentFragment paymentFragment) {
+        long questionServiceFee;
+        if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
+            questionServiceFee = mSelectedLawyer.individualFees().get(mSelectedSubSubject.uid());
+        } else if (mLoginUtil.getUserRole().equals(CommercialUser.ROLE_VALUE)) {
+            questionServiceFee = mSelectedLawyer.commercialFees().get(mSelectedSubSubject.uid());
+        } else {
+            questionServiceFee = 0L;
+        }
+
+        mRTDataFramework
+                .retrieveUserCoins()
+                .doOnSubscribe(disposable -> mContainerView.showLoadingIndicator())
+                .flatMap(Maybe::just)
+                .flatMap(currentCoins -> Maybe.zip(audioFileUpload, attachmentFileUpload, questionDescription,
+                        (recordedAudioUrl, attachmentUrls, description) -> Answer.builder()
+                                .audioRecordingUrl(recordedAudioUrl)
+                                .fileAttachments(attachmentUrls)
+                                .questionDescription(description)
+                                .build()))
+                .flatMapCompletable(answer -> mRTDataFramework
+                        .addQuestion(
+                                mSelectedField,
+                                mSelectedSubSubject,
+                                mSelectedLawyer,
+                                answer,
+                                transAction)
+                        .compose(paymentFragment.bindUntilEvent(FragmentEvent.DESTROY)))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe(
+                        () -> addInvoice("Esteshara Fee", paymentFragment, mmView),
+                        throwable -> {
+                            if (throwable.getMessage().equalsIgnoreCase(paymentFragment.getString(R.string.error_not_enough_coins))) {
+                                showNotEnoughCoinsPopup();
+                            } else {
+                                mContainerViewModel.catchErrorThrowable().accept(throwable);
+                            }
+                        }
+                );
+
+    }
+
+    public void showNotEnoughCoinsPopup() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(mFragment.getContext(), R.style.DialogTheme);
+        builder.setMessage(mFragment.getString(R.string.message_not_enough_coins));
+        builder.setPositiveButton(mFragment.getString(R.string.yes), (dialog, which) -> mContainerViewModel
+                .goTo(PurchaseCoinsKey.create())
+                .subscribe(mContainerViewModel.navigationObserver()));
+        builder.setCancelable(true);
+        builder.show();
+    }
+
+    @SuppressLint("CheckResult")
+    public void addInvoice(String type, PaymentFragment paymentFragment, PaymentContract.View mmView) {
+
+        long questionServiceFee;
+        if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
+            questionServiceFee = mSelectedLawyer.individualFees().get(mSelectedSubSubject.uid());
+        } else if (mLoginUtil.getUserRole().equals(CommercialUser.ROLE_VALUE)) {
+            questionServiceFee = mSelectedLawyer.commercialFees().get(mSelectedSubSubject.uid());
+        } else {
+            questionServiceFee = 0L;
+        }
+
+        Invoice invoice_ = Invoice.builder()
+                .UserUid(mLoginUtil.getUserID())
+                .collection("invoices")
+                .LawyerUid(mSelectedLawyer.uid())
+                .orderDate(new Date())
+                .orderRequestNumber(transAction)
+                .orderSubTotal(String.valueOf(questionServiceFee))
+                .orderType(type)
+                .orderTypePrice(String.valueOf(questionServiceFee))
+                .orderVat("0.0%")
+                .orderVatPrice("0")
+                .paid("true")
+                .build();
+
+        mmView.showSuccessDialog(
+                paymentFragment.getString(R.string.Paymentprocessedsuccessfully),
+                () -> mContainerViewModel
+                        .newTop(InvoiceKey.builder()
+                                .invoice(invoice_)
+                                .build())
+                        .doFinally(mContainerView::hideLoadingIndicator)
+                        .subscribe(mContainerViewModel.navigationObserver()));
+
+
+        mRTDataFramework.addInvoice(invoice_)
+                .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe();
+
+        ;
+    }
+
+    public void add_Invoice(String type, PaymentFragment paymentFragment, PaymentContract.View mmView) {
+        long questionServiceFee = 20L;
+
+        Invoice invoice_ = Invoice.builder()
+                .UserUid(mLoginUtil.getUserID())
+                .collection("invoices")
+                .orderDate(new Date())
+                .orderRequestNumber(transAction)
+                .orderSubTotal(String.valueOf(questionServiceFee))
+                .orderType(type)
+                .orderTypePrice(String.valueOf(questionServiceFee))
+                .orderVat("0.0%")
+                .orderVatPrice("0")
+                .paid("true")
+                .build();
+
+        mmView.showSuccessDialog(
+                paymentFragment.getString(R.string.Paymentprocessedsuccessfully),
+                () -> mContainerViewModel
+                        .newTop(InvoiceKey.builder()
+                                .invoice(invoice_)
+                                .build())
+                        .subscribe(mContainerViewModel.navigationObserver()));
+
+        mRTDataFramework.addInvoice(invoice_)
+                .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe();
+
+        ;
+    }
+
+
+    public void addNewPracticeRequest(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription, PaymentContract.View mmView, PaymentFragment paymentFragment) {
+        mRTDataFramework
+                .retrieveUserCoins()
+                .doOnSubscribe(disposable -> mContainerView.showLoadingIndicator())
+                .flatMap(currentCoins -> {
+//                    if (currentCoins < mPracticeRequestCost) {
+//                        return Maybe.error(new Throwable(mFragment.getString(R.string.error_not_enough_coins)));
+//                    } else {
+//                        return Maybe.just(currentCoins);
+//                    }
+                    return Maybe.just(currentCoins);
+                })
+                .flatMap(currentCoins -> Maybe.zip(audioFileUpload, attachmentFileUpload, questionDescription,
+                        (recordedAudioUrl, attachmentUrls, description) -> Answer.builder()
+                                .audioRecordingUrl(recordedAudioUrl)
+                                .fileAttachments(attachmentUrls)
+                                .questionDescription(description)
+                                .build()))
+                .flatMapCompletable(answer -> mRTDataFramework
+                        .addPracticeRequest(
+                                mSelectedField,
+                                mSelectedSubSubject,
+                                answer.audioRecordingUrl(),
+                                answer.fileAttachments(),
+                                answer.questionDescription(),
+                                mPracticeRequestCost)
+                        .compose(paymentFragment.bindUntilEvent(FragmentEvent.DESTROY)))
+                .doFinally(mContainerView::hideLoadingIndicator)
+                .subscribe(
+                        () -> add_Invoice("Coordinate fees with lawyer office", paymentFragment, mmView),
+                        throwable -> {
+                            if (throwable.getMessage().equalsIgnoreCase(paymentFragment.getString(R.string.error_not_enough_coins))) {
+                                showNotEnoughCoinsPopup();
+                            } else {
+                                mContainerViewModel.catchErrorThrowable().accept(throwable);
+                            }
+                        });
+    }
+
     public void addNewPracticeRequest(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload, Maybe<String> questionDescription) {
         mRTDataFramework
                 .retrieveUserCoins()
@@ -706,6 +1050,23 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
                                 mContainerViewModel.catchErrorThrowable().accept(throwable);
                             }
                         });
+    }
+
+
+    public Boolean getPaidStatus() {
+        return paid;
+    }
+
+    public void setPaidStatus(Boolean paid_, PaymentContract.View mmView_, PaymentFragment paymentFragment_, PaymentContract.ViewModel paymentViewModel_, String transAction_) {
+        mmView = mmView_;
+        paymentFragment = paymentFragment_;
+        paymentViewModel = paymentViewModel_;
+        paid = paid_;
+        transAction = transAction_;
+    }
+
+    public void setPaidStatus(Boolean paid_) {
+        paid = paid_;
     }
 
 }

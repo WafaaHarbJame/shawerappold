@@ -12,6 +12,7 @@ import com.shawerapp.android.autovalue.LawyerUser;
 import com.shawerapp.android.backend.base.BillingFramework;
 import com.shawerapp.android.backend.base.RealTimeDataFramework;
 import com.shawerapp.android.base.BaseFragment;
+import com.shawerapp.android.screens.container.ContainerActivity;
 import com.shawerapp.android.screens.container.ContainerContract;
 import com.shawerapp.android.screens.invoice.InvoiceKey;
 import com.shawerapp.android.screens.payment.PaymentKey;
@@ -108,7 +109,11 @@ public final class InvoicesViewModel implements InvoicesContract.ViewModel {
 
     @Override
     public void onLeftToolbarButtonClicked() {
+
+
         onBackButtonClicked();
+
+
     }
 
     @Override

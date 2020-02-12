@@ -109,8 +109,8 @@ import io.reactivex.Maybe;
                 .attachmentFileUpload((List<String>) attachmentFileUpload)
                 .mRecordedAudioFile(mRecordedAudioFile)
 //                .mSelectedFilesPaths(mSelectedFilesPaths)
-                .mComposerViewModel(mComposerViewModel)
-                .mComposition(mComposition)
+               // .mComposerViewModel(mComposerViewModel)
+               // .mComposition(mComposition)
                 .build();
     }
 

@@ -120,5 +120,8 @@ public interface ContainerContract {
         CompletableObserver navigationObserver();
 
         void recreateActivity();
+
+        @Override
+        void onBackPressed();
     }
 }

@@ -832,8 +832,8 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                                 .attachmentFileUpload(attachmentsFiles[0])
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
-                                .mComposition(mComposition)
-                                .mComposerViewModel(this)
+                                //.mComposition(mComposition)
+                                //.mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());
             }
@@ -865,6 +865,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
             mSelectedStatus = Question.Status.HAS_FEEDBACK;
             addAnswer(audioFileUpload, attachmentFileUpload, composition);
         }
+
     }
 
     @SuppressLint("CheckResult")
@@ -1021,7 +1022,8 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                         .compose(paymentFragment.bindUntilEvent(FragmentEvent.DESTROY)))
                 .doFinally(mContainerView::hideLoadingIndicator)
                 .subscribe(
-                        () -> addInvoice("Esteshara Fee", paymentFragment, mmView),
+                        () ->
+                                addInvoice("Esteshara Fee", paymentFragment, mmView),
                         throwable -> {
                             if (throwable.getMessage().equalsIgnoreCase(paymentFragment.getString(R.string.error_not_enough_coins))) {
                                 showNotEnoughCoinsPopup();
@@ -1106,7 +1108,9 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                         .compose(paymentFragment.bindUntilEvent(FragmentEvent.DESTROY)))
                 .doFinally(mContainerView::hideLoadingIndicator)
                 .subscribe(
-                        () -> add_Invoice("Coordinate fees with lawyer office", paymentFragment, mmView),
+                        () ->
+
+                                add_Invoice("Coordinate fees with lawyer office", paymentFragment, mmView),
                         throwable -> {
                             if (throwable.getMessage().equalsIgnoreCase(paymentFragment.getString(R.string.error_not_enough_coins))) {
                                 showNotEnoughCoinsPopup();

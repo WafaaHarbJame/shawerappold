@@ -191,6 +191,7 @@ public final class InvoiceFragment extends BaseFragment implements InvoiceContra
         }
         hideLoadingIndicator();
 
+
     }
 
 //    public void getInvoiceStatus() {

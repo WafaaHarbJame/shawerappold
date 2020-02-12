@@ -403,7 +403,7 @@
     <string name="progress_message_checkout_id">Getting the checkout id…</string>
     <string name="custom_ui_callback_scheme">customui</string>
     <string name="sdk_version_number">mobile sdk v%s</string>
-    <string name="thankyou">Yes</string>
+    <string name="thankyou">نعم</string>
     <string name="gotohome">الرجوع الى الصفحة الرئيسية </string>
     <string name="progress_message_payment_status">progress_message_payment_status</string>
 

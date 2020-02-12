@@ -85,8 +85,12 @@ public final class InvoiceViewModel implements InvoiceContract.ViewModel {
 
     @Override
     public void onBackButtonClicked() {
+
+
         mContainerViewModel.goBack()
                 .subscribe(mContainerViewModel.navigationObserver());
+
+
     }
 
     @Override
@@ -99,6 +103,8 @@ public final class InvoiceViewModel implements InvoiceContract.ViewModel {
 
     @Override
     public void onLeftToolbarButtonClicked() {
+        mContainerViewModel.onBackPressed();
+
         onBackButtonClicked();
     }
 

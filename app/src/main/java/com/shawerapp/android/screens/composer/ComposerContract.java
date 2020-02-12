@@ -53,7 +53,7 @@ public final class ComposerContract {
         void stopPlaybackVisualizer();
     }
 
-    interface ViewModel extends FragmentLifecycle.ViewModel {
+    public interface ViewModel extends FragmentLifecycle.ViewModel {
         void onRecordButtonClicked();
 
         void onRecordButtonClicked1();
