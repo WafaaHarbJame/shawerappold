@@ -450,6 +450,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         checkTransActions();
         mViewModel.setPaidStatus(true,
                 mContainerView, this, viewModel, transActionID);
+
         mViewModel.onSubmitComposition();
         db = FirebaseFirestore.getInstance();
         String type = "";

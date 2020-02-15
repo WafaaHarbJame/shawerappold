@@ -1,7 +1,10 @@
 package com.shawerapp.android.screens.answerlist;
 
 import androidx.appcompat.app.AlertDialog;
+
+import android.util.Log;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.shawerapp.android.R;
 import com.shawerapp.android.adapter.item.QuestionFlexible;

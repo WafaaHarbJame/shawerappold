@@ -30,6 +30,8 @@ public class QuestionListContract {
 
     void onTaskClicked(Question question);
 
+
+
     void onSearchTextChanged(String keyword);
 
     void onFilterButtonClicked();

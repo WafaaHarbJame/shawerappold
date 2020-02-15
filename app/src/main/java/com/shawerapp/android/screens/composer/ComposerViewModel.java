@@ -852,8 +852,8 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                                 .attachmentFileUpload(attachmentsFiles[0])
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
-                                .mComposition(mComposition)
-                                .mComposerViewModel(this)
+                                //.mComposition(mComposition)
+                                //.mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());
             }
@@ -1031,7 +1031,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                                 mContainerViewModel.catchErrorThrowable().accept(throwable);
                             }
                         }
-                        );
+                );
 
     }
 

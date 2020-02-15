@@ -689,7 +689,7 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
                                 .mComposition(mComposition)
-                               // .mComposerViewModel(this)
+                                // .mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());
             }
@@ -840,8 +840,8 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
 
     public void addNewQuestionnew(Maybe<String> audioFileUpload, Maybe<List<String>> attachmentFileUpload,
-                               Maybe<String> questionDescription, PaymentContract.View mmView,
-                               PaymentFragment paymentFragment) {
+                                  Maybe<String> questionDescription, PaymentContract.View mmView,
+                                  PaymentFragment paymentFragment) {
         long questionServiceFee;
         if (mLoginUtil.getUserRole().equals(IndividualUser.ROLE_VALUE)) {
             questionServiceFee = mSelectedLawyer.individualFees().get(mSelectedSubSubject.uid());
