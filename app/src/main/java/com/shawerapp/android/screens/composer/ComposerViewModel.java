@@ -41,6 +41,7 @@ import com.shawerapp.android.base.BaseFragment;
 import com.shawerapp.android.screens.answerlist.AnswerListKey;
 import com.shawerapp.android.screens.container.ContainerContract;
 import com.shawerapp.android.screens.invoice.InvoiceKey;
+import com.shawerapp.android.screens.payment.GlobalData;
 import com.shawerapp.android.screens.payment.PaymentContract;
 import com.shawerapp.android.screens.payment.PaymentFragment;
 import com.shawerapp.android.screens.payment.PaymentKey;
@@ -345,7 +346,8 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
         }
 
         if (currentPage == COMPOSE) {
-            if (CommonUtils.isNotEmpty(mComposition) || (mRecordedAudioFile != null)) {
+            if (CommonUtils.isNotEmpty(mComposition) ||
+                    (mRecordedAudioFile != null)) {
                 currentPage = REVIEW;
                 mView.changeViewPagerPage(REVIEW);
                 mView.setSecondaryInstructionText(mFragment.getString(R.string.label_compose_question_sub_description_2));
@@ -809,6 +811,10 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
         Maybe<String> composition = Maybe.just("");
         if (CommonUtils.isNotEmpty(mComposition)) {
             composition = Maybe.just(mComposition.toString());
+            GlobalData.mComposition=composition;
+            Log.d("composition", "onSubmitComposition: "+String.valueOf(composition));
+
+            Log.d("composition", "onSubmitComposition: "+String.valueOf(composition));
         }
 
         mContainerViewModel.hideRightToolbarButton();
@@ -832,7 +838,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                                 .attachmentFileUpload(attachmentsFiles[0])
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
-                                //.mComposition(mComposition)
+                                .mComposition(mComposition)
                                 //.mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());
@@ -852,7 +858,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                                 .attachmentFileUpload(attachmentsFiles[0])
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
-                                //.mComposition(mComposition)
+                                .mComposition(mComposition)
                                 //.mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());

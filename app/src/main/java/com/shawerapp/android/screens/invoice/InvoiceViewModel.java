@@ -85,12 +85,8 @@ public final class InvoiceViewModel implements InvoiceContract.ViewModel {
 
     @Override
     public void onBackButtonClicked() {
-
-
         mContainerViewModel.goBack()
                 .subscribe(mContainerViewModel.navigationObserver());
-
-
     }
 
     @Override
@@ -98,13 +94,11 @@ public final class InvoiceViewModel implements InvoiceContract.ViewModel {
         mContainerView.clearToolbarSubtitle();
         mContainerView.setToolbarTitle(mFragment.getString(R.string.label_buy_coins_title));
         mContainerView.setLeftToolbarButtonImageResource(R.drawable.icon_back);
-        mContainerView.setRightToolbarButtonImageResource(-1);
+  // mContainerView.setRightToolbarButtonImageResource(-1);
     }
 
     @Override
     public void onLeftToolbarButtonClicked() {
-        mContainerViewModel.onBackPressed();
-
         onBackButtonClicked();
     }
 

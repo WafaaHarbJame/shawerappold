@@ -26,7 +26,9 @@ import io.reactivex.Maybe;
     @Override
     protected BaseFragment createFragment() {
         return PaymentFragment.newInstance(requestType(), selectedField(), selectedSubSubject(),
-                selectedLawyerUser(), questionDescription(), audioFileUpload(), attachmentFileUpload(), mRecordedAudioFile(), mComposition(), mComposerViewModel());
+                selectedLawyerUser(), questionDescription(),
+                audioFileUpload(), attachmentFileUpload(), mRecordedAudioFile(), mComposition(),
+                mComposerViewModel());
     }
 
 //    public static PaymentKey create(Invoice invoice) {
@@ -110,7 +112,7 @@ import io.reactivex.Maybe;
                 .mRecordedAudioFile(mRecordedAudioFile)
 //                .mSelectedFilesPaths(mSelectedFilesPaths)
                 // .mComposerViewModel(mComposerViewModel)
-                // .mComposition(mComposition)
+                .mComposition(mComposition)
                 .build();
     }
 

@@ -90,11 +90,14 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
     private BaseActivity mActivity;
     static Boolean paid = false;
     private String mSelectedStatus;
+    private CharSequence mComposition;
+
 
 
     String transAction = "";
 
     PaymentContract.View mmView;
+    String ARG_QUESTION_DESCRIPTION;
 
     PaymentFragment paymentFragment;
     PaymentContract.ViewModel paymentViewModel;
@@ -139,7 +142,8 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
     LawyerUser mSelectedLawyer;
 
-    Maybe<String> questionDescription;
+   Maybe<String> questionDescription;
+    //String questionDescription;
     Maybe<String> audioFileUpload;
     Maybe<List<String>> attachmentFileUpload;
 
@@ -147,7 +151,6 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
     File mRecordedAudioFile;
     ArraySet<String> mSelectedFilesPaths;
-    CharSequence mComposition;
 
     @Inject
     public PaymentViewModel(BaseFragment fragment, PaymentContract.View view) {
@@ -161,13 +164,13 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
         mSelectedField = args.getParcelable(ARG_SELECTED_FIELD);
         mSelectedSubSubject = args.getParcelable(ARG_SELECTED_SUBSUBJECT);
         mSelectedLawyer = args.getParcelable(ARG_SELECTED_LAWYER);
-        questionDescription = args.getParcelable(ARG_QUESTION_DESCRIPTION);
         audioFileUpload = args.getParcelable(ARG_AUDIO_FILE_UPLOAD);
         List<String> ss = (List<String>) args.getSerializable(ARG_ATTACHMENT_FILE_UPLOAD);
         attachmentFileUpload = Maybe.just(Objects.requireNonNull(ss));
         mRecordedAudioFile = (File) args.getSerializable("mRecordedAudioFile");
 //        mSelectedFilesPaths = args.getParcelableArray("mSelectedFilesPaths");
-        mComposition = args.getCharSequence("mComposition");
+        mComposition=GlobalData.mCompositionchar;
+        //mComposition = args.getCharSequence("mComposition");
         mComposerViewModel = (ComposerViewModel) args.getSerializable("mComposerViewModel");
 
     }
@@ -667,7 +670,7 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
                                 .attachmentFileUpload(attachmentsFiles[0])
                                 .audioFileUpload(String.valueOf(audioFileUpload))
                                 .mRecordedAudioFile(mRecordedAudioFile)
-                                //.mComposition(mComposition)
+                                .mComposition(mComposition)
                                 //.mComposerViewModel(this)
                                 .build())
                         .subscribe(mContainerViewModel.navigationObserver());

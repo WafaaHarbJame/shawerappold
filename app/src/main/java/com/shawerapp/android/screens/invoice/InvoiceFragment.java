@@ -352,6 +352,14 @@ public final class InvoiceFragment extends BaseFragment implements InvoiceContra
     @Override
     public void onResume() {
         super.onResume();
-        getInvoiceStatus();
+       // getInvoiceStatus();
     }
+
+
+
+
+
+
+
+
 }

@@ -17,7 +17,7 @@
         <ImageView
             android:layout_width="wrap_content"
             android:id="@+id/imageviewsucc"
-            android:src="@drawable/sucess"
+            android:src="@drawable/icon_shawer_company"
             android:layout_gravity="center"
             android:layout_marginTop="@dimen/text_size_16"
             android:layout_height="wrap_content">

@@ -31,6 +31,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
@@ -169,11 +171,18 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         args.putParcelable(ARG_SELECTED_SUBSUBJECT, selectedSubSubject);
         args.putParcelable(ARG_SELECTED_LAWYER, selectedLawyerUser);
         args.putString(ARG_QUESTION_DESCRIPTION, questionDescription);
+        Log.d("questionDescription", "questionDescription: "+questionDescription);
         args.putString(ARG_AUDIO_FILE_UPLOAD, audioFileUpload);
         args.putSerializable(ARG_ATTACHMENT_FILE_UPLOAD, (Serializable) attachmentFileUpload);
         args.putSerializable("mRecordedAudioFile", mRecordedAudioFile);
-     // args.putString("mSelectedFilesPaths", mSelectedFilesPaths);
         args.putCharSequence("mComposition", mComposition);
+        Log.d("compositionfr", "compositionfr: "+mComposition);
+        GlobalData.mCompositionchar=mComposition;
+
+      //  GlobalData.mComposition=mComposition;
+
+        //Log.d("mComposition", "mComposition: "+mComposition.toString());
+
 
         args.putSerializable("mComposerViewModel", mComposerViewModel);
 
@@ -537,12 +546,11 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setCancelable(false);
         dialog.setContentView(R.layout.paymentdialagg);
-
+        dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
         TextView text = (TextView) dialog.findViewById(R.id.text_dialog);
         ImageView imageView=dialog.findViewById(R.id.imageviewsucc);
-        imageView.setImageDrawable(getActivity().getDrawable(R.drawable.sucess));
+        //imageView.setImageDrawable(getActivity().getDrawable(R.drawable.sucess));
         text.setText(successMessage);
-
         Button dialogButton = (Button) dialog.findViewById(R.id.btn_dialog);
         dialogButton.setText(getString(R.string.thankyou));
 
@@ -899,8 +907,8 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
                 }*/
             } else if (resultCode == CheckoutActivity.RESULT_CANCELED) {
                 hideProgressDialog();
-                getActivity().finish();
-//                openMain();
+                getActivity().getFragmentManager().popBackStack();
+
             } else if (resultCode == CheckoutActivity.RESULT_ERROR) {
                 hideProgressDialog();
                 PaymentError error = data.getParcelableExtra(CheckoutActivity.CHECKOUT_RESULT_ERROR);
@@ -1063,7 +1071,14 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
     }
 
 
+    public  void openMain(){
 
+        Intent intent=new Intent(getActivity(),ContainerActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK
+                |Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        getActivity().finish();
+    }
 
 
 
