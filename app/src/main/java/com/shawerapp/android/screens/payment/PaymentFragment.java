@@ -176,6 +176,9 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         args.putSerializable(ARG_ATTACHMENT_FILE_UPLOAD, (Serializable) attachmentFileUpload);
         args.putSerializable("mRecordedAudioFile", mRecordedAudioFile);
         args.putCharSequence("mComposition", mComposition);
+        GlobalData.attachmentFileUpload=attachmentFileUpload;
+        Log.d("attachmentFileUpload", "attachmentFileUpload: "+(Serializable) attachmentFileUpload);
+
         Log.d("compositionfr", "compositionfr: "+mComposition);
         GlobalData.mCompositionchar=mComposition;
 
@@ -665,6 +668,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         View view = inflater.inflate(R.layout.sts_payment_activity, container, false);
 
         mUnbinder = ButterKnife.bind(this, view);
+        transActionID = "" + System.currentTimeMillis();
 
         long questionServiceFee;
         if (mViewModel.mRequestType == QUESTION) {
@@ -698,7 +702,6 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         }
         requestCheckoutId(getString(R.string.checkout_ui_callback_scheme));
 
-        transActionID = "" + System.currentTimeMillis();
 
 
 
