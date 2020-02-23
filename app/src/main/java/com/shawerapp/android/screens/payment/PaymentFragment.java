@@ -30,6 +30,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.collection.ArraySet;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
@@ -122,7 +123,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
     private PaymentStatusRequestListener listener = null;
 
 
-
+    ArraySet<String> mSelectedFilesPaths;
 
 
 
@@ -143,6 +144,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
     public static final String ARG_ATTACHMENT_FILE_UPLOAD = "attachmentFileUpload";
     String finalType1;
     String lang="ar";
+    public  static List<String> attachmentFileUploadglobaldata;
 
 
 //    public static final String ARG_QUESTION_TO_RESPOND_TO = "audioFileUpload";
@@ -173,16 +175,16 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         args.putString(ARG_QUESTION_DESCRIPTION, questionDescription);
         Log.d("questionDescription", "questionDescription: "+questionDescription);
         args.putString(ARG_AUDIO_FILE_UPLOAD, audioFileUpload);
+        attachmentFileUploadglobaldata=GlobalData.attachmentFileUpload;
+        // args.putSerializable(ARG_ATTACHMENT_FILE_UPLOAD, (Serializable) attachmentFileUploadglobaldata);
+
         args.putSerializable(ARG_ATTACHMENT_FILE_UPLOAD, (Serializable) attachmentFileUpload);
         args.putSerializable("mRecordedAudioFile", mRecordedAudioFile);
         args.putCharSequence("mComposition", mComposition);
-        GlobalData.attachmentFileUpload=attachmentFileUpload;
-        Log.d("attachmentFileUpload", "attachmentFileUpload: "+(Serializable) attachmentFileUpload);
-
         Log.d("compositionfr", "compositionfr: "+mComposition);
         GlobalData.mCompositionchar=mComposition;
 
-      //  GlobalData.mComposition=mComposition;
+        //  GlobalData.mComposition=mComposition;
 
         //Log.d("mComposition", "mComposition: "+mComposition.toString());
 
@@ -463,7 +465,7 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         mViewModel.setPaidStatus(true,
                 mContainerView, this, viewModel, transActionID);
 
-        mViewModel.onSubmitComposition();
+        mViewModel.onSubmitComposition(mSelectedFilesPaths);
         db = FirebaseFirestore.getInstance();
         String type = "";
         if (mViewModel.mRequestType == QUESTION) {
@@ -683,6 +685,8 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
             questionServiceFee = 20L;
         }
 
+        mSelectedFilesPaths=GlobalData.mSelectedFilesPaths;
+
         String type = "";
         if (mViewModel.mRequestType == QUESTION) {
             type = "Esteshara Fee";
@@ -691,10 +695,10 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
         }
 
 
-         finalType1 = type;
+        finalType1 = type;
 
 
-         amount = "" + (questionServiceFee * 100);
+        amount = "" + (questionServiceFee * 100);
 
 
         if (savedInstanceState != null) {
@@ -792,7 +796,6 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
 
 
                        /* if (counter == 3) {
-
                             Toast.makeText(PaymentActivity.this, "" + getString(R.string.failedpay), Toast.LENGTH_SHORT).show();
                             Intent intent=new Intent(PaymentActivity.this,ContainerActivity.class);
                             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_NEW_TASK
@@ -800,8 +803,6 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
                             startActivity(intent);
                             finish();
                               sharedPreferences.edit().remove("counter").commit();
-
-
                         } else {
                              Toast.makeText(PaymentActivity.this, "" + description, Toast.LENGTH_SHORT).show();
                             Toast.makeText(PaymentActivity.this, "" + getString(R.string.failedpayagain), Toast.LENGTH_SHORT).show();
@@ -810,7 +811,6 @@ public class PaymentFragment extends BaseFragment implements PaymentContract.Vie
                                     |Intent.FLAG_ACTIVITY_CLEAR_TASK);
                             startActivity(intent);
                             finish();
-
                         }*/
 
 

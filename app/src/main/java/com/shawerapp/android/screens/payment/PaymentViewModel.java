@@ -142,7 +142,7 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
     LawyerUser mSelectedLawyer;
 
-   Maybe<String> questionDescription;
+    Maybe<String> questionDescription;
     //String questionDescription;
     Maybe<String> audioFileUpload;
     Maybe<List<String>> attachmentFileUpload;
@@ -624,7 +624,8 @@ public class PaymentViewModel implements PaymentContract.ViewModel {
 
 
 
-    public void onSubmitComposition() {
+    public void onSubmitComposition( ArraySet<String> mSelectedFilesPaths
+    ) {
         Maybe<String> audioFileUpload = Maybe.just("");
         if (mRecordedAudioFile != null) {
             audioFileUpload = mFileFramework.uploadAnswerAttachment(Uri.fromFile(mRecordedAudioFile))

@@ -1,5 +1,8 @@
 package com.shawerapp.android.screens.payment;
 
+import androidx.collection.ArraySet;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Maybe;
@@ -12,8 +15,7 @@ public class GlobalData {
     public static Maybe<String> mComposition;
     public static  CharSequence mCompositionchar;
     public  static List<String> attachmentFileUpload;
-    public  static Maybe<List<String>> attachmentFileUpload1;
-
+    public  static ArraySet<String> mSelectedFilesPaths ;
 
 
 

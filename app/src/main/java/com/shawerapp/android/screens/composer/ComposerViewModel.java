@@ -182,6 +182,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
     private Handler mVisualizerHandler;
 
     private Runnable mVisualizerRunnable;
+    public List<String>[] attachmentsFiles;
 
     @Inject
     public ComposerViewModel(BaseFragment fragment, ComposerContract.View view) {
@@ -755,6 +756,7 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
                 .setSelectedFiles(Collections.list(Collections.enumeration(mSelectedFilesPaths)))
                 .setActivityTheme(R.style.AppTheme)
                 .pickFile(mFragment, ComposerFragment.REQUEST_ATTACH);
+        Log.d("selectedFiles", "selectedFiles: "+selectedFiles);
     }
 
     @Override
@@ -782,6 +784,21 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
             }
             mView.updateSelectedFiles(mSelectedFilesPaths.iterator());
         }
+
+
+
+        Maybe<List<String>> attachmentFileUpload = Maybe.just(new ArrayList<>());
+        if (mSelectedFilesPaths != null) {
+            attachmentFileUpload = Flowable.fromIterable(mSelectedFilesPaths)
+                    .flatMapMaybe(filePath -> mFileFramework.uploadAnswerAttachment
+                            (Uri.fromFile(new File(filePath))))
+                    .toList()
+                    .toMaybe()
+                    .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW));
+        }
+        GlobalData.mSelectedFilesPaths=mSelectedFilesPaths;
+        Log.d("", "onActivityResult: "+mSelectedFilesPaths);
+
     }
 
     @Override
@@ -802,11 +819,13 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
         Maybe<List<String>> attachmentFileUpload = Maybe.just(new ArrayList<>());
         if (mSelectedFilesPaths != null) {
             attachmentFileUpload = Flowable.fromIterable(mSelectedFilesPaths)
-                    .flatMapMaybe(filePath -> mFileFramework.uploadAnswerAttachment(Uri.fromFile(new File(filePath))))
+                    .flatMapMaybe(filePath ->
+                            mFileFramework.uploadAnswerAttachment(Uri.fromFile(new File(filePath))))
                     .toList()
                     .toMaybe()
                     .compose(mFragment.bindUntilEvent(FragmentEvent.DESTROY_VIEW));
         }
+
 
         Maybe<String> composition = Maybe.just("");
         if (CommonUtils.isNotEmpty(mComposition)) {
@@ -819,9 +838,11 @@ public final class ComposerViewModel implements ComposerContract.ViewModel, Seri
 
         mContainerViewModel.hideRightToolbarButton();
 
-        final List<String>[] attachmentsFiles = new List[]{new ArrayList<>()};
+        attachmentsFiles = new List[]{new ArrayList<>()};
 
         attachmentFileUpload.map(authResult -> attachmentsFiles[0].addAll(authResult));
+        Log.d("attachmentFileUpload", "attachmentFileUpload: "+attachmentFileUpload);
+        Log.d("attachmentsFiles", "attachmentsFiles: "+attachmentsFiles);
 
         if (mRequestType == QUESTION) {
             if (paid) {
